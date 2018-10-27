@@ -1,0 +1,23 @@
+[package]
+name = "kauhanen"
+version = "0.1.0"
+authors = ["ISO"]
+
+links = "./fmodex64_vc.lib"
+build = "build.rs"
+
+[dependencies]
+find_folder = "0.3.0"
+piston_window = "0.81.0"
+piston2d-sprite = "0.45.0"
+pistoncore-sdl2_window = "0.50.0"
+image = "0.20.0"
+gfx = "0.17.1"
+gfx_core = "*"
+gfx_device_gl = "0.15.3"
+
+winit = "0.10"
+
+vecmath = "0.3.0"
+rand = "0.5.0"
+fmod = "*"
