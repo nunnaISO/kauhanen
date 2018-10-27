@@ -6,11 +6,8 @@
 
 extern crate piston_window;
 extern crate sprite;
-
 extern crate rfmod;
 extern crate winit;
-
-use winit::{KeyboardInput, VirtualKeyCode, WindowEvent};
 
 
 use piston_window::*;
@@ -134,13 +131,11 @@ fn main() {
     // center and scale sprites
     let screen_aspect = (screen_width as f64) / (screen_height as f64);
     for s in &mut images_loaded {
-        let bb = s.bounding_box();
         let (spr_x,spr_y) = s.get_texture().get_size();
         let scale_y = (screen_height as f64) / (spr_y as f64);
         let scale_x = (screen_width as f64) / (spr_x as f64);
         s.set_scale( scale_x, scale_y );
         s.set_position( screen_width as f64/2.0 as f64, screen_height as f64/2.0 as f64 );
-        println!("{:?}", s.get_texture().get_size());
     }
 
 
