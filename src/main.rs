@@ -8,10 +8,11 @@ extern crate piston_window;
 extern crate sprite;
 extern crate rfmod;
 extern crate winit;
-
+extern crate serde_json;
 
 use piston_window::*;
 use sprite::*;
+use serde_json::{Result, Value};
 
 
 fn find_files(dir: &str) -> Vec<std::string::String>
@@ -49,12 +50,8 @@ fn init_fmod() -> rfmod::Sys
 
 
 
-
 fn main() {
     let files = find_files(".");
-    let images : Vec<&std::string::String> = files.iter().filter(|s|
-        s.to_lowercase().ends_with(".jpg") || s.to_lowercase().ends_with(".png")
-        ).collect();
 
     std::env::set_var("LD_LIBRARY_PATH", ".");
 
@@ -75,8 +72,24 @@ fn main() {
         }
     };
 
-
     let music_length = sound.get_length( rfmod::TIMEUNIT_MS );
+
+
+
+    let images : Vec<&std::string::String> = match files.iter().find( |s| s.to_lowercase().ends_with(".json") && !s.contains("debug") && !s.contains("/.") ) {
+        Some(filename) => {
+            let file = std::fs::File::open(filename);
+            let reader = std::io::BufReader::new(file.unwrap());
+            let u : Result<serde_json::Value> = serde_json::from_reader(reader);
+            u.unwrap().as_array().unwrap().iter().map( |s| files.iter().find(|k| k.ends_with(s.as_str().unwrap())).unwrap() ).collect()
+        }
+        None => {
+            files.iter().filter(|s|
+                s.to_lowercase().ends_with(".jpg") || s.to_lowercase().ends_with(".png")
+            ).collect()
+        }
+    };
+
 
 
     // fuck it. use winit to get screen resolution as piston sucks
@@ -157,7 +170,7 @@ fn main() {
             return;
         }
     }
- 
+
 
 }
 
