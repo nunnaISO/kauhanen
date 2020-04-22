@@ -13,87 +13,68 @@ extern crate winit;
 use piston_window::*;
 use sprite::*;
 
-#[link(name = "fmodex64_vc.ilb")]
 
-fn find_files(dir: &str) -> Vec<std::string::String> 
+fn find_files(dir: &str) -> Vec<std::string::String>
 {
     let paths = std::fs::read_dir(dir).unwrap();
-    let mut images : Vec<std::string::String> = vec![];
+    let mut files : Vec<std::string::String> = vec![];
     for path in paths {
         let p = path.unwrap();
         if p.file_type().unwrap().is_dir()
         {
-            images.append( &mut find_files( p.path().to_str().unwrap() ) );
+            files.append( &mut find_files( p.path().to_str().unwrap() ) );
         }
         else
         {
-            images.push( p.path().into_os_string().into_string().unwrap() );
+            files.push( p.path().into_os_string().into_string().unwrap() );
         }
     }
-    images
+    files
 }
 
 
-fn init_fmod( filename:&str ) -> rfmod::Sound
+
+fn init_fmod() -> rfmod::Sys
 {
     let fmod = match rfmod::Sys::new() {
-        Ok(f) => f,
-        Err(e) => {
-            panic!("Error code : {:?}", e);
+        Ok(f) => {
+            f.init_with_parameters(10i32, rfmod::InitFlag(rfmod::INIT_NORMAL));
+            f
         }
+        Err(e) => panic!("FmodSys.new : {:?}", e),
     };
-    match fmod.init() {
-        rfmod::Status::Ok => {}
-        e => {
-            panic!("FmodSys.init failed : {:?}", e);
-        }
-    };
-
-    let sound = match fmod.create_sound(filename, None, None) {
-        Ok(s) => s,
-        Err(err) => {
-            panic!("Error code : {:?}", err);
-        }
-    };
-    sound
+    fmod
 }
+
+
+
 
 
 fn main() {
     let files = find_files(".");
-    let music : Option<&std::string::String> = files.iter().find(|s| 
-        s.to_lowercase().ends_with(".mp3") || s.to_lowercase().ends_with(".ogg") );
-    let images : Vec<&std::string::String> = files.iter().filter(|s| 
-        s.to_lowercase().ends_with(".jpg") || s.to_lowercase().ends_with(".png") 
+    let images : Vec<&std::string::String> = files.iter().filter(|s|
+        s.to_lowercase().ends_with(".jpg") || s.to_lowercase().ends_with(".png")
         ).collect();
 
     std::env::set_var("LD_LIBRARY_PATH", ".");
+
+
+    let music : Option<&std::string::String> = files.iter().find(|s|
+        s.to_lowercase().ends_with(".mp3") || s.to_lowercase().ends_with(".ogg") );
 
     if music == None
     {
         panic!("ei musaa hv kaikki");
     }
 
-
-    let fmod = match rfmod::Sys::new() {
-        Ok(f) => f,
-        Err(e) => {
-            panic!("Error code : {:?}", e);
-        }
-    };
-    match fmod.init() {
-        rfmod::Status::Ok => {}
-        e => {
-            panic!("FmodSys.init failed : {:?}", e);
-        }
-    };
-
+    let fmod = init_fmod();
     let sound = match fmod.create_sound(music.unwrap(), None, None) {
         Ok(s) => s,
         Err(err) => {
             panic!("Error code : {:?}", err);
         }
     };
+
 
     let music_length = sound.get_length( rfmod::TIMEUNIT_MS );
 
@@ -112,9 +93,11 @@ fn main() {
         .build()
         .unwrap();
 
+
+
     // load images  and create textures
-    let mut images_loaded : Vec<sprite::Sprite<_>> = 
-        images.iter().map(|s| 
+    let mut images_loaded : Vec<sprite::Sprite<_>> =
+        images.iter().map(|s|
             std::rc::Rc::new(Texture::from_path(
                 &mut window.factory,
                 s,
@@ -122,7 +105,7 @@ fn main() {
                 &TextureSettings::new()
             ).unwrap())
         )
-        .map(|s| 
+        .map(|s|
             Sprite::from_texture(s.clone())
         )
         .collect();
@@ -142,13 +125,21 @@ fn main() {
     let music_posses : Vec<usize> = (0..images.len()).map(|s| (s*music_length.unwrap() as usize/images.len()) ).collect();
 
 
-    
+
     let mut last = 0;
 
 
     let mut spr = None;
     let mut image_iter = images_loaded.iter();
-    let channel = sound.play().unwrap();
+
+
+    let channel = match sound.play() {
+        Ok(s) => s,
+        Err(err) => {
+            panic!("Kauhanen Error code : {:?}", err);
+        }
+    };
+
     while let Some(e) = window.next() {
         let pos = channel.get_position(rfmod::TIMEUNIT_MS);
         if ( last < music_posses.len() && pos.unwrap() >= music_posses[last] )
