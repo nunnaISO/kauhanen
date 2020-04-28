@@ -1,18 +1,15 @@
 
-
-// find fmodex64_vc.lib and fmodex64.dll somewhere
-// for example https://github.com/daisukewi/DamnedSunset/tree/master/dependencies/bin/Release
-
-
 extern crate piston_window;
 extern crate sprite;
-extern crate rfmod;
+extern crate fmod_sys;
 extern crate winit;
 extern crate serde_json;
 
 use piston_window::*;
 use sprite::*;
 use serde_json::{Result, Value};
+use fmod_sys::*;
+
 
 
 fn find_files(dir: &str) -> Vec<std::string::String>
@@ -35,47 +32,29 @@ fn find_files(dir: &str) -> Vec<std::string::String>
 
 
 
-fn init_fmod() -> rfmod::Sys
-{
-    let fmod = match rfmod::Sys::new() {
-        Ok(f) => {
-            f.init_with_parameters(10i32, rfmod::InitFlag(rfmod::INIT_NORMAL));
-            f
-        }
-        Err(e) => panic!("FmodSys.new : {:?}", e),
-    };
-    fmod
-}
-
-
-
 
 fn main() {
     let files = find_files(".");
 
+    // que?
     std::env::set_var("LD_LIBRARY_PATH", ".");
 
+    let music : Option<&std::string::String> = files.iter().find(|s| s.to_lowercase().ends_with(".mp3") || s.to_lowercase().ends_with(".ogg") );
 
-    let music : Option<&std::string::String> = files.iter().find(|s|
-        s.to_lowercase().ends_with(".mp3") || s.to_lowercase().ends_with(".ogg") );
-
-    if music == None
-    {
-        panic!("ei musaa hv kaikki");
-    }
-
-    let fmod = init_fmod();
-    let sound = match fmod.create_sound(music.unwrap(), None, None) {
-        Ok(s) => s,
-        Err(err) => {
-            panic!("Error code : {:?}", err);
-        }
-    };
-
-    let music_length = sound.get_length( rfmod::TIMEUNIT_MS );
+    // fmod init. damn this is ugly
+    let mut system: *mut FMOD_SYSTEM = std::ptr::null_mut();
+    let result = unsafe { FMOD_System_Create(&mut system) };
+    assert_eq!(result, FMOD_RESULT_FMOD_OK);
+    let result_init = unsafe{ FMOD_System_Init(system,6,FMOD_DEFAULT,std::ptr::null_mut()) };
+    assert_eq!(result_init, FMOD_RESULT_FMOD_OK);
+    let mut sound: *mut FMOD_SOUND = std::ptr::null_mut();
+    let result_stream = unsafe { FMOD_System_CreateStream(system, music.unwrap().as_ptr() as *const std::os::raw::c_char, FMOD_DEFAULT, std::ptr::null_mut(), &mut sound) };
+    assert_eq!(result_stream, FMOD_RESULT_FMOD_OK);
+    let mut music_length :u32 = 0;
+    unsafe { FMOD_Sound_GetLength( sound, &mut music_length, FMOD_TIMEUNIT_MS ) };
 
 
-
+    // match found filenames to ones in json, if exists, otherwise take all
     let images : Vec<&std::string::String> = match files.iter().find( |s| s.to_lowercase().ends_with(".json") && !s.contains("debug") && !s.contains("/.") ) {
         Some(filename) => {
             let file = std::fs::File::open(filename);
@@ -91,7 +70,6 @@ fn main() {
     };
 
 
-
     // fuck it. use winit to get screen resolution as piston sucks
     let events_loop = winit::EventsLoop::new();
     // might be get_current_monitor() but no clue which one piston will use
@@ -101,21 +79,24 @@ fn main() {
     let opengl = OpenGL::V3_2;
     let mut window: PistonWindow = WindowSettings::new("kauhanen", [screen_width,screen_height])
         .exit_on_esc(true)
-        .opengl(opengl)
+        .graphics_api(opengl)
         .fullscreen(true)
         .build()
         .unwrap();
 
 
-
+    let mut texture_context = TextureContext {
+      factory: window.factory.clone(),
+      encoder: window.factory.create_command_buffer().into()
+    };
     // load images  and create textures
     let mut images_loaded : Vec<sprite::Sprite<_>> =
-        images.iter().map(|s|
+        images.iter().map(|s| 
             std::rc::Rc::new(Texture::from_path(
-                &mut window.factory,
-                s,
-                Flip::None,
-                &TextureSettings::new()
+              &mut texture_context,
+              s,
+              Flip::None,
+              &TextureSettings::new()
             ).unwrap())
         )
         .map(|s|
@@ -124,8 +105,10 @@ fn main() {
         .collect();
 
 
+    println!("wifth: {:?} {:?}", screen_height, screen_width);
+
     // center and scale sprites
-    let screen_aspect = (screen_width as f64) / (screen_height as f64);
+    //let screen_aspect = (screen_width as f64) / (screen_height as f64);
     for s in &mut images_loaded {
         let (spr_x,spr_y) = s.get_texture().get_size();
         let scale_y = (screen_height as f64) / (spr_y as f64);
@@ -134,42 +117,45 @@ fn main() {
         s.set_position( screen_width as f64/2.0 as f64, screen_height as f64/2.0 as f64 );
     }
 
-
-    let music_posses : Vec<usize> = (0..images.len()).map(|s| (s*music_length.unwrap() as usize/images.len()) ).collect();
+    let music_posses : Vec<u32> = (0..images.len()).map(|s| (s as u32 *music_length/images.len() as u32 ) ).collect();
 
 
 
     let mut last = 0;
-
-
     let mut spr = None;
     let mut image_iter = images_loaded.iter();
 
 
-    let channel = match sound.play() {
-        Ok(s) => s,
-        Err(err) => {
-            panic!("Kauhanen Error code : {:?}", err);
-        }
-    };
+    let mut channel: *mut FMOD_CHANNEL = std::ptr::null_mut();
+    let result_play = unsafe { FMOD_System_PlaySound(system, sound, std::ptr::null_mut(), 0, &mut channel ) };
+    assert_eq!(result_play, FMOD_RESULT_FMOD_OK);
+
 
     while let Some(e) = window.next() {
-        let pos = channel.get_position(rfmod::TIMEUNIT_MS);
-        if ( last < music_posses.len() && pos.unwrap() >= music_posses[last] )
+        let mut pos: u32 = 0;
+        unsafe { FMOD_Channel_GetPosition( channel, &mut pos, FMOD_TIMEUNIT_MS) };
+        if last < music_posses.len() && pos >= music_posses[last]
         {
             spr = image_iter.next();
             last = last + 1;
         }
 
-        window.draw_2d(&e, |c, g| {
+        window.draw_2d(&e, |c, g, _| {
             clear([1.0, 1.0, 1.0, 1.0], g);
             spr.unwrap().draw(c.transform, g);
         });
-        if channel.is_playing() == Ok(false)
+        let mut is_playing: FMOD_BOOL = 0;
+        unsafe { FMOD_Channel_IsPlaying( channel, &mut is_playing ) };
+        if is_playing == 0
         {
-            return;
+          return;
         }
     }
+
+    let result_sound_release = unsafe { FMOD_Sound_Release( sound ) };
+    assert_eq!(result_sound_release, FMOD_RESULT_FMOD_OK);
+    let result_system_release = unsafe { FMOD_System_Release( system ) };
+    assert_eq!(result_system_release, FMOD_RESULT_FMOD_OK);
 
 
 }
