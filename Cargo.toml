@@ -9,9 +9,9 @@ build = "build.rs"
 [dependencies]
 serde_json = "1.0"
 find_folder = "0.3.0"
-piston_window = "0.81.0"
-piston2d-sprite = "0.45.0"
-pistoncore-sdl2_window = "0.50.0"
+piston_window = "0.108.0"
+piston2d-sprite = "0.59.0"
+pistoncore-sdl2_window = "0.63.0"
 image = "0.20.0"
 gfx = "0.17.1"
 gfx_core = "*"
@@ -21,4 +21,5 @@ winit = "0.10"
 
 vecmath = "0.3.0"
 rand = "0.5.0"
-fmod = "*"
+fmod-sys = { git = "https://github.com/khonsulabs/fmod-sys.git", features = ["studio"] }
+
