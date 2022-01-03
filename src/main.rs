@@ -44,12 +44,12 @@ fn main() {
     // fmod init. damn this is ugly
     let mut system: *mut FMOD_SYSTEM = std::ptr::null_mut();
     let result = unsafe { FMOD_System_Create(&mut system) };
-    assert_eq!(result, FMOD_RESULT_FMOD_OK);
+    assert_eq!(result, FMOD_RESULT::FMOD_OK);
     let result_init = unsafe{ FMOD_System_Init(system,6,FMOD_DEFAULT,std::ptr::null_mut()) };
-    assert_eq!(result_init, FMOD_RESULT_FMOD_OK);
+    assert_eq!(result_init, FMOD_RESULT::FMOD_OK);
     let mut sound: *mut FMOD_SOUND = std::ptr::null_mut();
     let result_stream = unsafe { FMOD_System_CreateStream(system, music.unwrap().as_ptr() as *const std::os::raw::c_char, FMOD_DEFAULT, std::ptr::null_mut(), &mut sound) };
-    assert_eq!(result_stream, FMOD_RESULT_FMOD_OK);
+    assert_eq!(result_stream, FMOD_RESULT::FMOD_OK);
     let mut music_length :u32 = 0;
     unsafe { FMOD_Sound_GetLength( sound, &mut music_length, FMOD_TIMEUNIT_MS ) };
 
@@ -71,16 +71,18 @@ fn main() {
 
 
     // fuck it. use winit to get screen resolution as piston sucks
-    let events_loop = winit::EventsLoop::new();
+    let events_loop = winit::event_loop::EventLoop::new();
     // might be get_current_monitor() but no clue which one piston will use
-    let monitor: winit::MonitorId = events_loop.get_primary_monitor();
-    let (screen_width, screen_height) = monitor.get_dimensions();
+    let monitor = events_loop.primary_monitor().unwrap();
+    let monitor_size = monitor.size();
+    let screen_width = monitor_size.width;
+    let screen_height = monitor_size.height;
 
     let opengl = OpenGL::V3_2;
     let mut window: PistonWindow = WindowSettings::new("kauhanen", [screen_width,screen_height])
         .exit_on_esc(true)
         .graphics_api(opengl)
-        .fullscreen(true)
+        .fullscreen(false)
         .build()
         .unwrap();
 
@@ -91,7 +93,7 @@ fn main() {
     };
     // load images  and create textures
     let mut images_loaded : Vec<sprite::Sprite<_>> =
-        images.iter().map(|s| 
+        images.iter().map(|s|
             std::rc::Rc::new(Texture::from_path(
               &mut texture_context,
               s,
@@ -128,7 +130,7 @@ fn main() {
 
     let mut channel: *mut FMOD_CHANNEL = std::ptr::null_mut();
     let result_play = unsafe { FMOD_System_PlaySound(system, sound, std::ptr::null_mut(), 0, &mut channel ) };
-    assert_eq!(result_play, FMOD_RESULT_FMOD_OK);
+    assert_eq!(result_play, FMOD_RESULT::FMOD_OK);
 
 
     while let Some(e) = window.next() {
@@ -153,9 +155,9 @@ fn main() {
     }
 
     let result_sound_release = unsafe { FMOD_Sound_Release( sound ) };
-    assert_eq!(result_sound_release, FMOD_RESULT_FMOD_OK);
+    assert_eq!(result_sound_release, FMOD_RESULT::FMOD_OK);
     let result_system_release = unsafe { FMOD_System_Release( system ) };
-    assert_eq!(result_system_release, FMOD_RESULT_FMOD_OK);
+    assert_eq!(result_system_release, FMOD_RESULT::FMOD_OK);
 
 
 }
