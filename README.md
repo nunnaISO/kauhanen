@@ -5,6 +5,7 @@
 
 "cargo build"
 
+see 'stuff' for example demo
 
 
 # from linxu to win64
