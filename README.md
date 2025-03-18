@@ -1,12 +1,24 @@
 "# kauhanen"
 
 
-" editoi build.rs laita fmodex_vc.dll path oikein GRR"
-
 "instaa cargo ja rust tai jotai, ehkä rust-lang.org "
 
 "cargo build"
 
-"target/debug/kauhanen.exe"
+see 'stuff' for example demo
 
-laita dll johkuu"   
+
+# from linxu to win64
+"rustup target add x86_64-w64-mingw32-gcc"
+
+"sudo apt-get install mingw-w64"
+
+"cargo build --target x86_64-pc-windows-gnu --release"
+
+
+# appel
+"rustup target add x86_64-apple-darwin"
+
+"cargo build --target x86_64-apple-darwin --release" :DDDD 
+
+
