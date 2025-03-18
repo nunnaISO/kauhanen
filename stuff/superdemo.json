@@ -1,7 +1,10 @@
 [
-  "pix2pix (1).png",
-  "sS1bbFM.jpg",
-  {
-    "filename": "15439728_698860906939183_5469661950680502981_n.jpg"
-  }
+"./stuff/flamu0.png",
+"./stuff/flamu1.png",
+"./stuff/flamu2.png",
+"./stuff/flamu3.png",
+{
+	"filename": "./stuff/flamu4.png"
+}
 ]
+
