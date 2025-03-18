@@ -1,10 +1,8 @@
 [package]
 name = "kauhanen"
-version = "0.1.0"
+version = "0.3.0"
 authors = ["ISO"]
-
-links = "./fmodex64_vc.lib"
-build = "build.rs"
+edition = "2021"
 
 [dependencies]
 serde_json = "1.0"
@@ -21,5 +19,5 @@ winit = "0.25.0"
 
 vecmath = "1.0.0"
 rand = "0.8.4"
-fmod-sys = { git = "https://github.com/khonsulabs/fmod-sys.git", features = ["studio"] }
+rodio = "0.20.1"
 
