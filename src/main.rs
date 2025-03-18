@@ -74,52 +74,24 @@ fn main() {
                                     })
                                     .collect()
                             } else {
-                                println!("JSON is not an array, falling back to all images");
-                                files.iter()
-                                    .filter(|s| s.to_lowercase().ends_with(".jpg") || s.to_lowercase().ends_with(".png"))
-                                    .cloned()
-                                    .collect()
+                              Vec::new()
                             }
                         },
-                        Err(e) => {
-                            println!("Error parsing JSON: {}, falling back to all images", e);
-                            files.iter()
-                                .filter(|s| s.to_lowercase().ends_with(".jpg") || s.to_lowercase().ends_with(".png"))
-                                .cloned()
-                                .collect()
-                        }
+                        Err(_) => Vec::new()
                     }
                 },
-                Err(e) => {
-                    println!("Error opening JSON file: {}, falling back to all images", e);
-                    files.iter()
-                        .filter(|s| s.to_lowercase().ends_with(".jpg") || s.to_lowercase().ends_with(".png"))
-                        .cloned()
-                        .collect()
-                }
+                Err(_) => Vec::new()
             }
         },
-        None => {
-            println!("No JSON file found, using all images");
-            files.iter()
-                .filter(|s| s.to_lowercase().ends_with(".jpg") || s.to_lowercase().ends_with(".png"))
-                .cloned()
-                .collect()
-        }
+        None => Vec::new()
     };
     
     // Make sure we have images
     if images.is_empty() {
-      images = match files.iter().find(|s| s.to_lowercase().ends_with(".jpg") || s.to_lowercase().ends_with(".png")) {
-          Some(filename) => {
-              println!("Found image file: {}", filename);
-              vec![filename.clone()]
-          },
-          None => {
-              println!("No image file found");
-              vec![]
-          }
-      };
+      images = files.iter()
+        .filter(|s| s.to_lowercase().ends_with(".jpg") || s.to_lowercase().ends_with(".png"))
+        .cloned()
+        .collect();
     }
     if images.is_empty() {
       println!("No images found!");
@@ -177,7 +149,6 @@ fn main() {
         s.set_position(screen_width as f64 / 2.0, screen_height as f64 / 2.0);
     }
     
-
     let file = File::open(music_file).expect("Failed to open music file");
     let source = Decoder::new(BufReader::new(file)).expect("Failed to decode audio");
     let music_length_ms = source.total_duration().unwrap().as_millis() as u32;
